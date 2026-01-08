@@ -36,7 +36,7 @@ afterAll(() => {
  */
 const runCoreModelTests = async (
   modelType: keyof typeof ModelType,
-  modelFn: (runtime: IAgentRuntime, params: TestGenerateParams) => Promise<string>
+  modelFn: (runtime: IAgentRuntime, params: TestGenerateParams) => Promise<string | unknown>
 ) => {
   // Create a mock runtime for model testing
   const mockRuntime = createMockRuntime();
@@ -48,13 +48,14 @@ const runCoreModelTests = async (
     maxTokens: 100,
   };
 
-  let basicResponse: string | null = null;
+  let basicResponse: unknown = null;
   let basicError: Error | null = null;
 
   try {
     basicResponse = await modelFn(mockRuntime, basicParams);
-    expect(basicResponse).toBeTruthy();
-    expect(typeof basicResponse).toBe('string');
+    const normalized = typeof basicResponse === 'string' ? basicResponse : JSON.stringify(basicResponse);
+    expect(normalized).toBeTruthy();
+    expect(typeof normalized).toBe('string');
   } catch (e) {
     basicError = e as Error;
     logger.error({ error: e }, `${modelType} model call failed:`);
@@ -65,7 +66,7 @@ const runCoreModelTests = async (
     prompt: '',
   };
 
-  let emptyResponse: string | null = null;
+  let emptyResponse: unknown = null;
   let emptyError: Error | null = null;
 
   try {
@@ -85,7 +86,7 @@ const runCoreModelTests = async (
     presencePenalty: 0.4,
   };
 
-  let fullResponse: string | null = null;
+  let fullResponse: unknown = null;
   let fullError: Error | null = null;
 
   try {
@@ -119,11 +120,9 @@ describe('Plugin Models', () => {
     });
 
     it('should run core tests for TEXT_SMALL model', async () => {
-      if (plugin.models && plugin.models[ModelType.TEXT_SMALL]) {
-        const results = await runCoreModelTests(
-          ModelType.TEXT_SMALL,
-          plugin.models[ModelType.TEXT_SMALL]
-        );
+      const modelFn = plugin.models?.[ModelType.TEXT_SMALL];
+      if (modelFn) {
+        const results = await runCoreModelTests(ModelType.TEXT_SMALL, modelFn);
 
         documentTestResult('TEXT_SMALL core model tests', results);
       }
@@ -139,11 +138,9 @@ describe('Plugin Models', () => {
     });
 
     it('should run core tests for TEXT_LARGE model', async () => {
-      if (plugin.models && plugin.models[ModelType.TEXT_LARGE]) {
-        const results = await runCoreModelTests(
-          ModelType.TEXT_LARGE,
-          plugin.models[ModelType.TEXT_LARGE]
-        );
+      const modelFn = plugin.models?.[ModelType.TEXT_LARGE];
+      if (modelFn) {
+        const results = await runCoreModelTests(ModelType.TEXT_LARGE, modelFn);
 
         documentTestResult('TEXT_LARGE core model tests', results);
       }

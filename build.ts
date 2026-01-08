@@ -3,9 +3,10 @@
  * Self-contained build script for ElizaOS projects
  */
 
-import { existsSync } from 'node:fs';
-import { rm } from 'node:fs/promises';
+import { existsSync, copyFileSync } from 'node:fs';
+import { rm, mkdir } from 'node:fs/promises';
 import { $ } from 'bun';
+import path from 'node:path';
 
 async function cleanBuild(outdir = 'dist') {
   if (existsSync(outdir)) {
@@ -46,6 +47,8 @@ async function build() {
             '@elizaos/plugin-bootstrap',
             '@elizaos/plugin-sql',
             '@elizaos/cli',
+            '@electric-sql/pglite',
+            'pg',
             'zod',
           ],
           naming: {
@@ -82,6 +85,22 @@ async function build() {
 
     if (!buildResult.success) {
       return false;
+    }
+
+    // Copy pglite runtime assets so pglite can load postgres.wasm/postgres.data at runtime
+    try {
+      const distDir = path.resolve('./dist');
+      const pgliteDir = path.join(process.cwd(), 'node_modules/@electric-sql/pglite/dist');
+      const assets = ['postgres.data', 'postgres.wasm'];
+      await mkdir(distDir, { recursive: true });
+      for (const asset of assets) {
+        const src = path.join(pgliteDir, asset);
+        const dest = path.join(distDir, asset);
+        copyFileSync(src, dest);
+      }
+      console.log('✓ Copied pglite assets to dist');
+    } catch (err) {
+      console.warn('⚠ Failed to copy pglite assets (postgres.data/wasm):', err instanceof Error ? err.message : String(err));
     }
 
     const elapsed = ((performance.now() - start) / 1000).toFixed(2);

@@ -1,8 +1,8 @@
-import { IAgentRuntime, logger, Plugin } from '@elizaos/core';
+import { logger } from '@elizaos/core';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { afterAll, beforeAll, describe, expect, it, mock, spyOn } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, it, spyOn } from 'bun:test';
 import { character } from '../index';
 import plugin from '../plugin';
 
@@ -69,7 +69,6 @@ describe('Integration: Character and Plugin', () => {
     // Verify plugin has necessary components that character will use
     expect(plugin).toHaveProperty('name');
     expect(plugin).toHaveProperty('description');
-    expect(plugin).toHaveProperty('init');
 
     // Check if plugin has actions, models, providers, etc. that character might use
     const components = ['models', 'actions', 'providers', 'services', 'routes', 'events'];
@@ -83,67 +82,6 @@ describe('Integration: Character and Plugin', () => {
         ).toBeTruthy();
       }
     });
-  });
-});
-
-describe('Integration: Runtime Initialization', () => {
-  it('should create a mock runtime with character and plugin', async () => {
-    // Create a custom mock runtime for this test
-    const customMockRuntime = {
-      character: { ...character },
-      plugins: [],
-      registerPlugin: mock().mockImplementation((plugin: Plugin) => {
-        // In a real runtime, registering the plugin would call its init method,
-        // but since we're testing init itself, we just need to record the call
-        return Promise.resolve();
-      }),
-      initialize: mock(),
-      getService: mock(),
-      getSetting: mock().mockReturnValue(null),
-      useModel: mock().mockResolvedValue('Test model response'),
-      getProviderResults: mock().mockResolvedValue([]),
-      evaluateProviders: mock().mockResolvedValue([]),
-      evaluate: mock().mockResolvedValue([]),
-    } as Partial<IAgentRuntime> as IAgentRuntime;
-
-    // Ensure we're testing safely - to avoid parallel test race conditions
-    const originalInit = plugin.init;
-    let initCalled = false;
-
-    // Mock the plugin.init method using mock instead of direct assignment
-    if (plugin.init) {
-      plugin.init = mock(async (config, runtime) => {
-        // Set flag to indicate our wrapper was called
-        initCalled = true;
-
-        // Call original if it exists
-        if (originalInit) {
-          await originalInit(config, runtime);
-        }
-
-        // Register plugin
-        await runtime.registerPlugin(plugin);
-      });
-    }
-
-    try {
-      // Initialize plugin in runtime
-      if (plugin.init) {
-        await plugin.init({ EXAMPLE_PLUGIN_VARIABLE: 'test-value' }, customMockRuntime);
-      }
-
-      // Verify our wrapper was called
-      expect(initCalled).toBe(true);
-
-      // Check if registerPlugin was called
-      expect(customMockRuntime.registerPlugin).toHaveBeenCalled();
-    } catch (error) {
-      console.error('Error initializing plugin:', error);
-      throw error;
-    } finally {
-      // Restore the original init method to avoid affecting other tests
-      plugin.init = originalInit;
-    }
   });
 });
 

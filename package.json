@@ -60,7 +60,7 @@
     "vite": "^7.2.6"
   },
   "scripts": {
-    "start": "elizaos start",
+    "start": "node scripts/ensure-central-schema.js && elizaos start",
     "dev": "elizaos dev",
     "build": "bun run build.ts",
     "lint": "prettier --write ./src",

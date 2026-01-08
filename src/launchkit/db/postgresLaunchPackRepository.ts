@@ -68,6 +68,10 @@ async function ensureSchema(pool: Pool) {
 export class PostgresLaunchPackRepository implements LaunchPackStore {
   private constructor(private pool: Pool) {}
 
+  async close() {
+    await this.pool.end();
+  }
+
   static async create(databaseUrl: string): Promise<PostgresLaunchPackRepository> {
     const pool = buildPool(databaseUrl);
     await ensureSchema(pool);

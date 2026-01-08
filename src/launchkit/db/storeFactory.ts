@@ -10,10 +10,7 @@ export async function createLaunchPackStoreFromEnv(): Promise<LaunchPackStoreWit
   const env = getEnv();
   if (env.DATABASE_URL) {
     const store = await PostgresLaunchPackRepository.create(env.DATABASE_URL);
-    return {
-      ...(store as LaunchPackStore),
-      close: () => store.close(),
-    } as LaunchPackStoreWithClose;
+    return store as LaunchPackStoreWithClose;
   }
 
   const dataDir = env.PGLITE_DATA_DIR || '.pglite';
